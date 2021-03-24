@@ -24,7 +24,7 @@ describe('saerch tests', () => {
         client: app.client,
       },
     });
-    console.log(retVal.bookings[0]);
+    // console.log(retVal.bookings[0]);
     expect(retVal).toBeTruthy();
   });
 });
