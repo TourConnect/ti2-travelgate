@@ -15,7 +15,9 @@ describe('saerch tests', () => {
   });
   it(' should be able to search by booking Id', async () => {
     const retVal = await app.searchHotelBooking({
-      payload: {},
+      payload: {
+        bookingId: '200127',
+      },
       token: {
         apiKey: app.apiKey,
         endpoint: app.endpoint,
