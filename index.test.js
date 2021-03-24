@@ -1,7 +1,9 @@
 /* globals describe, beforeAll, it, expect */
 const R = require('ramda');
 const Plugin = require('./index');
-const { name: pluginName } = require('./package.json');
+const { name: pluginNameParam } = require('./package.json');
+
+const pluginName = pluginNameParam.replace(/@(.+)\//g, '');
 
 const app = new Plugin(R.pickBy(
   (_val, key) => key.substring(0, pluginName.length) === pluginName,

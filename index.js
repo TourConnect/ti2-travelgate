@@ -2,7 +2,9 @@ const axios = require('axios');
 const R = require('ramda');
 require('util').inspect.defaultOptions.depth = null;
 
-const { name: pluginName } = require('./package.json');
+const { name: pluginNameParam } = require('./package.json');
+
+const pluginName = pluginNameParam.replace(/@(.+)\//g, '');
 
 const capitalize = (s) => {
   if (typeof s !== 'string') return '';
