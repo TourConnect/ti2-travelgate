@@ -23,7 +23,9 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           unrelated: true
   publish-gpr:
-    needs: build
+    needs:
+      - build
+      - tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
