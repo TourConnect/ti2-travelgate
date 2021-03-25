@@ -9,7 +9,8 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm --no-git-tag-version version patch && git add package.json"
+      "pre-commit": "npm --no-git-tag-version version patch && git add package.json",
+      "master_prepush": "echo 'cool master stuff'"
     }
   },
   "repository": {
