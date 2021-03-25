@@ -122,6 +122,10 @@ const bookingMapOut = {
   })),
   start: R.path(['hotel', 'start']),
   end: R.path(['hotel', 'end']),
+  cancelPolicy: (e) => ({
+    refundable: R.path(['cancelPolicy', 'refundable'], e),
+    cancelPenalties: R.path(['cancelPolicy', 'refundable'], e),
+  }),
 };
 
 const getHeaders = (apiKey) => ({

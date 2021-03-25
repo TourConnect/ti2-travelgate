@@ -27,6 +27,6 @@ describe('saerch tests', () => {
       },
     });
     // console.log(retVal.bookings[0]);
-    expect(retVal).toBeTruthy();
+    expect(Array.isArray(retVal.bookings)).toBeTruthy();
   });
 });
