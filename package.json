@@ -18,6 +18,8 @@
   "homepage": "https://github.com/TourConnect/ti2-travelgate#readme",
   "dependencies": {
     "axios": "^0.21.1",
+    "gql-query-builder": "^3.5.5",
+    "moment": "^2.29.1",
     "ramda": "^0.27.1"
   },
   "devDependencies": {
