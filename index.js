@@ -80,7 +80,8 @@ const getHeaders = (apiKey) => ({
 class Plugin {
   constructor(params) { // we get the env variables from here
     Object.entries(params).forEach(([attr, value]) => {
-      const nuName = attr.replace(new RegExp(`${pluginName}[-_]`), '');
+      const nuName = attr.replace(new RegExp(`${pluginName}[-_]`, 'g'), '');
+      console.log({ nuName });
       this[nuName] = value;
     });
   }
