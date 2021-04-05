@@ -17,9 +17,9 @@ jobs:
       - run: npm run build --if-present
       - run: npm test
         env:
-          'ti2-travelgate-apiKey': '8626cf56-e364-4fd1-4fe0-311e23ac6355'
-          'ti2-travelgate-client': 'client_demo'
-          'ti2-travelgate-endpoint': 'https://api.travelgatex.com'
+          ti2_travelgate_apiKey: '8626cf56-e364-4fd1-4fe0-311e23ac6355'
+          ti2_travelgate_client: 'client_demo'
+          ti2_travelgate_endpoint: 'https://api.travelgatex.com'
   tag:
     if: github.ref == 'refs/heads/master'
     needs: build_and_test
