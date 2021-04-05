@@ -1,6 +1,6 @@
 {
   "name": "@tourconnect/ti2-travelgate",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "ti2 travelgateplugin",
   "main": "index.js",
   "scripts": {
