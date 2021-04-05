@@ -9,7 +9,7 @@ const { name: pluginNameParam } = require('./package.json');
 const pluginName = pluginNameParam.replace(/@(.+)\//g, '');
 
 const app = new Plugin(R.pickBy(
-  (_val, key) => key.substring(0, pluginName.length) === pluginName,
+  (_val, key) => key.replace(/_/g, '-').substring(0, pluginName.length) === pluginName,
   process.env,
 ));
 
