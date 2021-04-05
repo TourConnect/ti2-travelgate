@@ -4,7 +4,7 @@
   "description": "ti2 travelgateplugin",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 0"
+    "test": "jest -ib"
   },
   "repository": {
     "type": "git",
