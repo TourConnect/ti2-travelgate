@@ -89,7 +89,7 @@ class Plugin {
     token: {
       apiKey,
       endpoint,
-      client, // TODO: what is this ?
+      clientCode,
     },
     payload: payloadParam,
   }) {
@@ -144,9 +144,9 @@ class Plugin {
           ...dates,
         },
         settings: {
-          client,
+          client: clientCode,
           auditTransactions: true,
-          context: payload.supplierId,
+          context: payload.context,
           testMode: true,
           timeout: 18000,
         },
@@ -158,13 +158,11 @@ class Plugin {
       headers,
       data,
     });
-    // console.log(results.data);
     // return doMap(JSON.parse(profile).companyProfile, mapIn);
     const bookingResult = R.path(['data', 'data', 'hotelX', 'booking'], results);
     if (bookingResult.errors) {
       throw new Error(bookingResult.error);
     }
-    // console.log(bookingResult.bookings[0]);
     if (payload.purchaseDateStart && payload.purchaseDateEnd) {
       // TODO: secondary filtering
     }
@@ -196,62 +194,60 @@ class Plugin {
     return { hotels: hotelsResult.edges.map((e) => doMap(e, hotelsMapOut)) };
   }
 
-  async searchAvailability({ token: { apiKey, endpoint }, payload }) {
+  async searchAvailability({ token: { apiKey, endpoint, clientCode }, payload }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
-    const { dateFormat = 'DD/MM/YYYY' } = payload;
+    const { dateFormat } = payload;
     const checkIn = moment(payload.travelDateStart, dateFormat).format('YYYY-MM-DD');
     const checkOut = moment(payload.travelDateEnd, dateFormat).format('YYYY-MM-DD');
-    const data = JSON.stringify({
+    const data = {
       query: searchAvailabilityQL(),
       variables: {
         criteria: {
           checkIn,
           checkOut,
-          ...R.omit([
-            'travelDateEnd',
-            'travelDateStart',
-            'dateFormat',
-            'supplierId',
-            'client',
-            'testMode',
-            'access',
+          ...R.pick([
+            'hotels',
+            'occupancies',
+            'currency',
+            'market',
+            'language',
+            'nationality',
           ], payload),
         },
         settings: {
-          client: payload.client,
-          context: payload.supplierId,
+          client: clientCode,
+          ...R.pick(['context', 'testMode'], payload),
           auditTransactions: false,
-          testMode: payload.testMode,
           timeout: 25000,
         },
         filter: { access: { includes: [payload.access] } },
       },
-    });
+    };
     const results = await axios({
       method: 'post',
       url,
       headers,
-      data,
+      data: JSON.stringify(data),
     });
     const options = R.path(['data', 'data', 'hotelX', 'search', 'options'], results);
     return { availability: options.map((e) => doMap(e, availabilityMapOut)) };
   }
 
-  async quoteAvailability({ token: { apiKey, endpoint }, payload }) {
+  async quoteAvailability({ token: { apiKey, endpoint, clientCode }, payload }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
+    const optionRefId = payload.id;
     const data = JSON.stringify({
       query: quoteQL(),
       variables: {
         criteria: {
-          optionRefId: payload.id,
+          optionRefId,
         },
         settings: {
-          client: payload.client,
+          client: clientCode,
           auditTransactions: true,
-          context: payload.supplierId,
-          testMode: payload.testMode,
+          ...R.pick(['context', 'testMode'], payload),
           timeout: 5000,
         },
       },
@@ -270,7 +266,7 @@ class Plugin {
     return { quote: quote.optionQuote };
   }
 
-  async book({ token: { apiKey, endpoint }, payload }) {
+  async book({ token: { apiKey, endpoint, clientCode }, payload }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
     const data = {
@@ -278,19 +274,20 @@ class Plugin {
       variables: {
         input: {
           optionRefId: payload.id,
-          clientReference: payload.clientReference,
-          deltaPrice: payload.deltaPrice,
-          holder: payload.holder,
-          remarks: payload.remarks,
-          paymentCard: payload.paymentCard,
-          rooms: payload.rooms,
+          ...R.pick([
+            'clientReference',
+            'deltaPrice',
+            'holder',
+            'remarks',
+            'paymentCard',
+            'rooms',
+          ], payload),
         },
         settings: {
-          client: payload.client,
+          client: clientCode,
           auditTransactions: false,
-          context: payload.supplierId,
           useContext: true,
-          testMode: payload.testMode,
+          ...R.pick(['context', 'testMode'], payload),
         },
       },
     };
@@ -308,7 +305,7 @@ class Plugin {
     return ({ booking: book.booking });
   }
 
-  async cancelBooking({ token: { apiKey, endpoint }, payload }) {
+  async cancelBooking({ token: { apiKey, endpoint, clientCode }, payload }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
     const data = {
@@ -318,10 +315,9 @@ class Plugin {
           bookingID: payload.id,
         },
         settings: {
-          client: payload.client,
+          client: clientCode,
           auditTransactions: false,
-          context: payload.supplierId,
-          testMode: payload.testMode,
+          ...R.pick(['context', 'testMode'], payload),
           timeout: 18e3,
         },
       },
