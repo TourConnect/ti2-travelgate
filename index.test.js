@@ -23,8 +23,28 @@ describe('search tests', () => {
   const token = {
     apiKey: app.apiKey,
     endpoint: app.endpoint,
-    client: app.client, // TODO: ask what this is
+    clientCode: 'client_demo',
+    /*
+     * A travel company that buys accommodation services
+    * via Hotel-X API is considered a "client" in our architecture".
+    * Client codes are consistent throughout all TravelgateX implementations.
+    * These codes are used to identify the business that is making the request
+    * and to confirm that the business has a configuration assigned to it.
+    */
   };
+  const defaultAccessCode = 0;
+  /*
+   * Accesses are displayed as numeric codes in Hotel-X and represent Supplier
+   * configurations for a given credential. Those configurations include:
+   * URLs
+   * Credentials
+   * Markets
+   * Rate Types
+   * Specific Supplier settings
+   * An access is used by just a client exclusively.
+   * The same supplier has different access depends on the number of clients
+   * connected to him, even if the configuration is almost the same.
+*/
   const dateFormat = 'DD/MM/YYYY';
   beforeAll(async () => {
     // nada
@@ -33,7 +53,7 @@ describe('search tests', () => {
     it('search for all available hotels, test hotel should exist', async () => {
       const retVal = await app.searchHotels({
         payload: {
-          access: '0',
+          access: defaultAccessCode,
         },
         token,
       });
@@ -51,14 +71,13 @@ describe('search tests', () => {
           dateFormat,
           hotels: ['1', '2'],
           occupancies: [{ paxes: [{ age: 30 }, { age: 40 }] }],
-          supplierId: 'HOTELTEST',
+          context: 'HOTELTEST',
           currency: 'EUR',
           market: 'ES',
           language: 'es',
           nationality: 'ES',
-          client: 'client_demo', // TODO: ask what this is for ?
           testMode: true,
-          access: '0', // TODO: ask what this is for ?
+          access: defaultAccessCode,
         },
       });
       expect(retVal).toBeTruthy();
@@ -71,8 +90,7 @@ describe('search tests', () => {
         token,
         payload: {
           id: rnd(availability).id, // availability result id
-          client: 'Demo_Client', // TODO: what this is about ?
-          supplierId: 'HOTELTEST',
+          context: 'HOTELTEST',
           testMode: true,
         },
       });
@@ -122,8 +140,7 @@ describe('search tests', () => {
               },
             ],
           },
-          client: 'client_demo', // TODO: what this is about ?
-          supplierId: 'HOTELTEST',
+          context: 'HOTELTEST',
           testMode: true,
         },
       });
@@ -137,8 +154,7 @@ describe('search tests', () => {
         token,
         payload: {
           id: bookingId || '1[1|201228|201229|200226|1|es|EUR|0|TEST_LOCATOR_1|975723',
-          client: 'client_demo', // TODO: what is this ?
-          supplierId: 'HOTELTEST',
+          context: 'HOTELTEST',
           testMode: true,
         },
       });
@@ -152,10 +168,9 @@ describe('search tests', () => {
         purchaseDateStart: '06/03/2020',
         purchaseDateEnd: '07/03/2020',
         dateFormat: 'DD/MM/YYYY',
-        supplierId: 'HOTELTEST',
-        access: '0', // TODO: ask what this is ?
+        context: 'HOTELTEST',
+        access: defaultAccessCode,
         language: 'es',
-        client: 'client_demo', // TODO: ask what this is ?
       };
       const retVal = await app.searchHotelBooking({
         payload,
@@ -173,8 +188,8 @@ describe('search tests', () => {
         travelDateStart: '09/03/2020',
         travelDateEnd: '10/03/2020',
         dateFormat: 'DD/MM/YYYY',
-        supplierId: 'HOTELTEST',
-        access: '0', // TODO: ask what this is ?
+        context: 'HOTELTEST',
+        access: defaultAccessCode,
         language: 'es',
       };
       const retVal = await app.searchHotelBooking({
@@ -194,8 +209,8 @@ describe('search tests', () => {
           bookingId: '988671',
           hotelCode: '1', // required for booking search
           currency: 'USD', // required for booking search
-          supplierId: 'HOTELTEST',
-          access: '0', // TODO: ask what this is ?
+          context: 'HOTELTEST',
+          access: defaultAccessCode,
           language: 'es',
         },
         token,
