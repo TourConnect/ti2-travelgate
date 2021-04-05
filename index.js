@@ -4,9 +4,12 @@ const moment = require('moment');
 require('util').inspect.defaultOptions.depth = null;
 
 const { name: pluginNameParam } = require('./package.json');
-const bookingQL = require('./graphQL/quote');
+const quoteQL = require('./graphQL/quote');
+const searchAvailabilityQL = require('./graphQL/availability');
 const searchQL = require('./graphQL/search');
 const hotelSearchQL = require('./graphQL/hotelSearch');
+const bookQL = require('./graphQL/book');
+const cancelQL = require('./graphQL/cancel');
 
 const pluginName = pluginNameParam.replace(/@(.+)\//g, '');
 
@@ -53,7 +56,7 @@ const hotelsMapOut = {
   hotelName: R.path(['node', 'hotelData', 'hotelName']),
 };
 
-const quotesMapOut = {
+const availabilityMapOut = {
   id: R.path(['id']),
   hotelName: R.path(['hotelName']),
   hotelId: R.path(['hotelCode']),
@@ -193,14 +196,14 @@ class Plugin {
     return { hotels: hotelsResult.edges.map((e) => doMap(e, hotelsMapOut)) };
   }
 
-  async quoteHotel({ token: { apiKey, endpoint }, payload }) {
+  async searchAvailability({ token: { apiKey, endpoint }, payload }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
     const { dateFormat = 'DD/MM/YYYY' } = payload;
     const checkIn = moment(payload.travelDateStart, dateFormat).format('YYYY-MM-DD');
     const checkOut = moment(payload.travelDateEnd, dateFormat).format('YYYY-MM-DD');
     const data = JSON.stringify({
-      query: bookingQL(),
+      query: searchAvailabilityQL(),
       variables: {
         criteria: {
           checkIn,
@@ -232,24 +235,106 @@ class Plugin {
       data,
     });
     const options = R.path(['data', 'data', 'hotelX', 'search', 'options'], results);
-    return { quotes: options.map((e) => doMap(e, quotesMapOut)) };
+    return { availability: options.map((e) => doMap(e, availabilityMapOut)) };
   }
 
-  async cancelBooking({ token: { apiKey, endpoint, client } }) {
+  async quoteAvailability({ token: { apiKey, endpoint }, payload }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
-    const data = JSON.stringify({ query: bookingSearch({ client }) });
-    // TODO : how to cancel ~!
+    const data = JSON.stringify({
+      query: quoteQL(),
+      variables: {
+        criteria: {
+          optionRefId: payload.id,
+        },
+        settings: {
+          client: payload.client,
+          auditTransactions: true,
+          context: payload.supplierId,
+          testMode: payload.testMode,
+          timeout: 5000,
+        },
+      },
+    });
     const results = await axios({
       method: 'post',
       url,
       headers,
       data,
     });
-    const bookingResult = R.path(['data', 'data', 'hotelX', 'booking'], results);
-    if (bookingResult.errors) throw new Error(bookingResult.error);
-    // console.log(bookingResult.bookings[0]);
-    return { bookings: bookingResult.bookings.map((e) => doMap(e, bookingMapOut)) };
+    const quote = R.path(['data', 'data', 'hotelX', 'quote'], results);
+    if (quote.errors.length > 0) {
+      console.error(quote.errors);
+      throw new Error(quote.errors[0].description);
+    }
+    return { quote: quote.optionQuote };
+  }
+
+  async book({ token: { apiKey, endpoint }, payload }) {
+    const url = `${endpoint || this.endpoint}/`;
+    const headers = getHeaders(apiKey || this.apiKey);
+    const data = {
+      query: bookQL(),
+      variables: {
+        input: {
+          optionRefId: payload.id,
+          clientReference: payload.clientReference,
+          deltaPrice: payload.deltaPrice,
+          holder: payload.holder,
+          remarks: payload.remarks,
+          paymentCard: payload.paymentCard,
+          rooms: payload.rooms,
+        },
+        settings: {
+          client: payload.client,
+          auditTransactions: false,
+          context: payload.supplierId,
+          useContext: true,
+          testMode: payload.testMode,
+        },
+      },
+    };
+    const results = await axios({
+      method: 'post',
+      url,
+      headers,
+      data: JSON.stringify(data),
+    });
+    const book = R.path(['data', 'data', 'hotelX', 'book'], results);
+    if (book.errors.length > 0) {
+      console.error(book.errors);
+      throw new Error(book.errors[0].description);
+    }
+    return ({ booking: book.booking });
+  }
+
+  async cancelBooking({ token: { apiKey, endpoint }, payload }) {
+    const url = `${endpoint || this.endpoint}/`;
+    const headers = getHeaders(apiKey || this.apiKey);
+    const data = {
+      query: cancelQL(),
+      variables: {
+        input: {
+          bookingID: payload.id,
+        },
+        settings: {
+          client: payload.client,
+          auditTransactions: false,
+          context: payload.supplierId,
+          testMode: payload.testMode,
+          timeout: 18e3,
+        },
+      },
+    };
+    const results = await axios({
+      method: 'post',
+      url,
+      headers,
+      data: JSON.stringify(data),
+    });
+    const cancelResult = R.path(['data', 'data', 'hotelX', 'cancel'], results);
+    if (cancelResult.errors) throw new Error(cancelResult.error);
+    return { cancellation: cancelResult.cancellation };
   }
 }
 

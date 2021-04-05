@@ -1,77 +1,33 @@
+// optionRefId: "01@01[201228[201229[1[3[1[ES[ES[es[EUR[0[0[1[3[0[0[26021224[TEST#TEST[232.5#0#false#EUR##0#[1|30#30|1|2020-12-28|1|1482013|1482015|3|1|0[1@1[30#30[[[mercado@ES@ExpireDate@29/12/2020"
+
 module.exports = () => `
-query ($criteria: HotelCriteriaSearchInput!, $settings: HotelSettingsInput!, $filter: FilterInput!) {
+query ($criteria: HotelCriteriaQuoteInput!, $settings: HotelSettingsInput) {
   hotelX {
-    search (criteria: $criteria, settings: $settings, filter: $filter) {
-      context
-      options {
-        id
-        accessCode
-        supplierCode
-        hotelCode
-        hotelName
-        boardCode
-        paymentType
+    quote(
+      criteria: $criteria,
+        settings: $settings
+      ) {
+      auditData {
+        transactions {
+          request
+          response
+        }
+      }
+      optionQuote {
+        addOns {
+          distribution {
+            value
+            key
+          }
+        }
+        searchPrice {
+          currency
+          net
+          gross
+          binding
+        }
+        optionRefId
         status
-        occupancies {
-          id
-          paxes {
-            age
-          }
-        }
-        rooms {
-          occupancyRefId
-          code
-          description
-          refundable
-          roomPrice {
-            price {
-              currency
-              binding
-              net
-              gross
-              exchange {
-                currency
-                rate
-              }
-            }
-            breakdown {
-              price {
-                currency
-                binding
-                net
-                gross
-                exchange {
-                  currency
-                  rate
-                }
-                markups {
-                  channel
-                  currency
-                  binding
-                  net
-                  gross
-                  exchange {
-                    currency
-                    rate
-                  }
-                  rules {
-                    id
-                    name
-                    type
-                    value
-                  }
-                }
-              }
-            }
-          }
-          beds {
-            type
-            count
-          }
-          ratePlans {
-            code
-          }
-        }
         price {
           currency
           binding
@@ -99,69 +55,6 @@ query ($criteria: HotelCriteriaSearchInput!, $settings: HotelSettingsInput!, $fi
             }
           }
         }
-        supplements {
-          code
-          name
-          description
-          supplementType
-          chargeType
-          mandatory
-          durationType
-          quantity
-          unit
-          resort {
-            code
-            name
-            description
-          }
-          price {
-            currency
-            binding
-            net
-            gross
-            exchange {
-              currency
-              rate
-            }
-            markups {
-              channel
-              currency
-              binding
-              net
-              gross
-              exchange {
-                currency
-                rate
-              }
-            }
-          }
-        }
-        surcharges {
-          chargeType
-          description
-          price {
-            currency
-            binding
-            net
-            gross
-            exchange {
-              currency
-              rate
-            }
-            markups {
-              channel
-              currency
-              binding
-              net
-              gross
-              exchange {
-                currency
-                rate
-              }
-            }
-          }
-        }
-        rateRules
         cancelPolicy {
           refundable
           cancelPenalties {
@@ -171,7 +64,28 @@ query ($criteria: HotelCriteriaSearchInput!, $settings: HotelSettingsInput!, $fi
             value
           }
         }
+        cardTypes
         remarks
+        surcharges {
+          chargeType
+          chargeType
+          price {
+            currency
+            binding
+            net
+            gross
+          }
+        }
+      }
+      errors {
+        code
+        type
+        description
+      }
+      warnings {
+        code
+        type
+        description
       }
     }
   }
