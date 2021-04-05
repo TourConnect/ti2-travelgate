@@ -1,27 +1,54 @@
-name: Node CI
+name: Node.js Package
 
-on: [push]
-
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [ '10', '8' ]
     steps:
-    - uses: actions/checkout@v1
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: '10.16.3'
-    - name: install dependecies
-      run: |
-        npm ci
-        npm run build --if-present
-    - name: run the tests
-      run: 'npm test -- --coverage'
-      env:
-        CI: true
-        ti2-travelgate-apiKey: '8626cf56-e364-4fd1-4fe0-311e23ac6355'
-        ti2-travelgate-client: 'client_demo'
-        ti2-travelgate-endpoint: 'https://api.travelgatex.com'
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - run: npm ci
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - run: npm test
+        env:
+          ti2-travelgate-apiKey: '8626cf56-e364-4fd1-4fe0-311e23ac6355'
+          ti2-travelgate-client: 'client_demo'
+          ti2-travelgate-endpoint: 'https://api.travelgatex.com'
+  tag:
+    if: github.ref == 'refs/heads/master'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: tool3/bump@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          unrelated: true
+  publish-gpr:
+    if: github.ref == 'refs/heads/master'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+          registry-url: https://npm.pkg.github.com
+      - run: npm ci
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
