@@ -79,9 +79,8 @@ const getHeaders = (apiKey) => ({
 });
 class Plugin {
   constructor(params) { // we get the env variables from here
-    console.log({ params });
     Object.entries(params).forEach(([attr, value]) => {
-      const nuName = attr.replace(`${pluginName}-`, '');
+      const nuName = attr.replace(/_/g, '-').replace(`${pluginName}-`, '');
       this[nuName] = value;
     });
   }
