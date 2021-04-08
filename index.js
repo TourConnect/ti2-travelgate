@@ -166,7 +166,7 @@ class Plugin {
     if (payload.purchaseDateStart && payload.purchaseDateEnd) {
       // TODO: secondary filtering
     }
-    return { bookings: bookingResult.bookings.map((e) => doMap(e, bookingMapOut)) };
+    return { bookings: (bookingResult.bookings || []).map((e) => doMap(e, bookingMapOut)) };
   }
 
   async searchHotels({ token: { apiKey, endpoint }, payload }) {
