@@ -161,6 +161,7 @@ class Plugin {
     // return doMap(JSON.parse(profile).companyProfile, mapIn);
     const bookingResult = R.path(['data', 'data', 'hotelX', 'booking'], results);
     if (bookingResult.errors) {
+      console.log('bookingResult error', bookingResult.errors);
       throw new Error(bookingResult.errors);
     }
     if (payload.purchaseDateStart && payload.purchaseDateEnd) {
