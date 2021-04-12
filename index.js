@@ -161,7 +161,7 @@ class Plugin {
     // return doMap(JSON.parse(profile).companyProfile, mapIn);
     const bookingResult = R.path(['data', 'data', 'hotelX', 'booking'], results);
     if (bookingResult.errors) {
-      throw new Error(bookingResult.error);
+      throw new Error(bookingResult.errors);
     }
     if (payload.purchaseDateStart && payload.purchaseDateEnd) {
       // TODO: secondary filtering
