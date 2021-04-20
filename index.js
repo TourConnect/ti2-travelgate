@@ -18,6 +18,10 @@ const capitalize = (s) => {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 };
 
+const dateSort = (a, b) => 
+   moment(a.start, 'YYYY-MM-DD').unix() -
+    moment(b.start, 'YYYY-MM-DD').unix()
+
 const doMap = (obj, map) => {
   const retVal = {};
   Object.entries(map).forEach(([attribute, fn]) => {
@@ -171,7 +175,12 @@ class Plugin {
       // TODO: secondary filtering
     }
     // console.log(R.propOr([], ['bookings'], bookingResult).filter(e => R.path(['status'], e) !== 'CANCELLED'));
-    return { bookings: (bookingResult.bookings || []).map((e) => doMap(e, bookingMapOut)) };
+    return { bookings: R.sort(
+      dateSort,
+      (bookingResult.bookings || []).map(
+        (e) => doMap(e, bookingMapOut),
+      )
+    )};
   }
 
   async searchHotels({ token: { apiKey, endpoint }, payload }) {
