@@ -38,16 +38,19 @@ const bookingMapOut = {
   hotelId: R.path(['hotel', 'hotelCode']),
   hotelName: R.path(['hotel', 'hotelName']),
   rooms: (e) => e.hotel.rooms.map((r) => ({
-    description: R.path(['description'], r),
     roomId: R.path(['code'], r), // code
+    description: R.path(['description'], r),
     price: R.path(['price'], r),
   })),
   start: R.path(['hotel', 'start']),
   end: R.path(['hotel', 'end']),
   bookingDate: R.path(['hotel', 'bookingDate']),
+  priceTotal: (e) => [
+    ...e.hotel.rooms.map((r) => R.pathOr(0, ['price'], r))
+  ].reduce((a, b) => a + b, 0) || null,
   cancelPolicy: (e) => ({
     refundable: R.path(['cancelPolicy', 'refundable'], e),
-    cancelPenalties: R.path(['cancelPolicy', 'refundable'], e),
+    cancelPenalties: R.path(['cancelPolicy', 'cancelPenalties'], e),
   }),
 };
 
@@ -167,6 +170,7 @@ class Plugin {
     if (payload.purchaseDateStart && payload.purchaseDateEnd) {
       // TODO: secondary filtering
     }
+    // console.log(R.propOr([], ['bookings'], bookingResult).filter(e => R.path(['status'], e) !== 'CANCELLED'));
     return { bookings: (bookingResult.bookings || []).map((e) => doMap(e, bookingMapOut)) };
   }
 
