@@ -19,11 +19,12 @@ describe('search tests', () => {
   // let validKey = process;
   let hotels;
   let availability;
+  let optionRefId;
   let bookingId;
   const token = {
     apiKey: app.apiKey,
     endpoint: app.endpoint,
-    clientCode: 'client_demo',
+    clientCode: 'tourconnect',
     /*
      * A travel company that buys accommodation services
     * via Hotel-X API is considered a "client" in our architecture".
@@ -66,8 +67,8 @@ describe('search tests', () => {
       const retVal = await app.searchAvailability({
         token,
         payload: {
-          travelDateStart: moment().add(1, 'M').format(dateFormat),
-          travelDateEnd: moment().add(1, 'M').add(7, 'd').format(dateFormat),
+          travelDateStart: moment().add(6, 'M').format(dateFormat),
+          travelDateEnd: moment().add(6, 'M').add(7, 'd').format(dateFormat),
           dateFormat,
           hotels: ['1', '2'],
           occupancies: [{ paxes: [{ age: 30 }, { age: 40 }] }],
@@ -84,19 +85,21 @@ describe('search tests', () => {
       ({ availability } = retVal);
       expect(availability.length).toBeGreaterThan(0);
       expect(availability.find((e) => e.rooms.find((r) => /double room/gi.test(r.description)))).toBeTruthy();
+      availability = rnd(availability); // pick 1
     });
     it('should be able to quote for an availability result', async () => {
+      const { id } = availability; // availability result id
       const retVal = await app.quoteAvailability({
         token,
         payload: {
-          id: rnd(availability).id, // availability result id
+          id,
           context: 'HOTELTEST',
           testMode: true,
         },
       });
       expect(retVal).toBeTruthy();
-      // ({ availability } = retVal);
-      // console.log({ retVal });
+      ({ quote: { optionRefId } } = retVal);
+      expect(optionRefId).toBeTruthy();
     });
     it('should be able to book a reservation of 1 room', async () => {
       const fullName = faker.name.findName().split(' ');
@@ -109,22 +112,20 @@ describe('search tests', () => {
       const retVal = await app.book({
         token,
         payload: {
-          id: rnd(availability).id, // availability result id
-          clientReference: '1617599148593', // TODO: where does this comes from?
-          deltaPrice: {
-            amount: 10,
-            percent: 10,
-            applyBoth: true,
-          }, // TODO: does this comes from the quote ?
+          id: optionRefId, // availability result id
+          clientReference: faker.finance.account(),
           holder: { name: fullName[0], surname: fullName[1] },
           remarks: faker.lorem.sentence(),
-          paymentCard: {
-            cardType: rnd(['VI', 'MC']),
-            holder: { name: billName[0], surname: billName[1] },
-            number: faker.finance.creditCardNumber().replace(/-/g, ''),
-            CVC: faker.finance.creditCardCVV(),
-            expire: { month: expDate.month(), year: expDate.year() },
-          },
+          ...(availability.paymentType === 'DIRECT' ? {
+            paymentCard: {
+              cardType: rnd(['VI', 'MC']),
+              holder: { name: billName[0], surname: billName[1] },
+              number: '4242 4242 4242 4242',
+              CVC: '914',
+              expire: { month: expDate.month(), year: expDate.year() },
+            },
+
+          } : {}),
           rooms: {
             occupancyRefId: 1,
             paxes: [
@@ -145,9 +146,8 @@ describe('search tests', () => {
         },
       });
       expect(retVal).toBeTruthy();
-      bookingId = R.path(['reference', 'bookingID'], retVal);
+      bookingId = R.path(['booking', 'reference', 'bookingID'], retVal);
       expect(bookingId).toBeTruthy();
-      // console.log({ retVal });
     });
     it('sould be able to cancel the generated booking', async () => {
       const retVal = await app.cancelBooking({
