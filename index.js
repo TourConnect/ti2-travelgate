@@ -244,7 +244,7 @@ class Plugin {
       headers,
       data: JSON.stringify(data),
     });
-    const options = R.path(['data', 'data', 'hotelX', 'search', 'options'], results);
+    const options = R.pathOr([], ['data', 'data', 'hotelX', 'search', 'options'], results);
     return { availability: options.map((e) => doMap(e, availabilityMapOut)) };
   }
 
@@ -260,7 +260,7 @@ class Plugin {
         },
         settings: {
           client: clientCode,
-          auditTransactions: true,
+          auditTransactions: false,
           ...R.pick(['context', 'testMode'], payload),
           timeout: 5000,
         },
@@ -273,7 +273,7 @@ class Plugin {
       data,
     });
     const quote = R.path(['data', 'data', 'hotelX', 'quote'], results);
-    if (quote.errors.length > 0) {
+    if (R.pathOr([], ['errors'], quote).length > 0) {
       console.error(quote.errors);
       throw new Error(quote.errors[0].description);
     }
@@ -312,7 +312,7 @@ class Plugin {
       data: JSON.stringify(data),
     });
     const book = R.path(['data', 'data', 'hotelX', 'book'], results);
-    if (book.errors.length > 0) {
+    if (R.pathOr([], ['errors'], book).length > 0) {
       console.error(book.errors);
       throw new Error(book.errors[0].description);
     }
