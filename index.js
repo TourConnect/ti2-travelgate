@@ -18,9 +18,8 @@ const capitalize = (s) => {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 };
 
-const dateSort = (a, b) => 
-   moment(a.start, 'YYYY-MM-DD').unix() -
-    moment(b.start, 'YYYY-MM-DD').unix()
+const dateSort = (a, b) => moment(a.start, 'YYYY-MM-DD').unix()
+  - moment(b.start, 'YYYY-MM-DD').unix();
 
 const doMap = (obj, map) => {
   const retVal = {};
@@ -49,9 +48,7 @@ const bookingMapOut = {
   start: R.path(['hotel', 'start']),
   end: R.path(['hotel', 'end']),
   bookingDate: R.path(['hotel', 'bookingDate']),
-  priceTotal: (e) => [
-    ...e.hotel.rooms.map((r) => R.pathOr(0, ['price'], r))
-  ].reduce((a, b) => a + b, 0) || null,
+  price: R.path(['price']),
   cancelPolicy: (e) => ({
     refundable: R.path(['cancelPolicy', 'refundable'], e),
     cancelPenalties: R.path(['cancelPolicy', 'cancelPenalties'], e),

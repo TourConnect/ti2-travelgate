@@ -7,6 +7,11 @@ query ($criteria: HotelCriteriaBookingInput!, $settings: HotelSettingsInput) {
     ) {
       bookings {
         billingSupplierCode
+        price {
+            currency
+            net
+            gross
+        }
         reference {
           client
           supplier
