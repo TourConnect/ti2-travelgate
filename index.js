@@ -179,7 +179,6 @@ class Plugin {
   }
 
   async searchHotels({ token: { apiKey, endpoint }, payload }) {
-    console.log({ endpoint });
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
     const data = JSON.stringify({
