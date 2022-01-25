@@ -18,7 +18,7 @@ jobs:
       - run: npm test
         env:
           ti2_travelgate_apiKey: ${{ secrets.APIKEY }}
-          ti2_travelgate_client: ${{ secrets.CLIENT }}
+          ti2_travelgate_clientCode: ${{ secrets.CLIENT }}
           ti2_travelgate_endpoint: ${{ secrets.ENDPOINT }}
   tag:
     if: github.ref == 'refs/heads/master'
