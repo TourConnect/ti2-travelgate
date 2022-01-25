@@ -4,14 +4,8 @@ const moment = require('moment');
 const faker = require('faker');
 
 const Plugin = require('./index');
-const { name: pluginNameParam } = require('./package.json');
 
-const pluginName = pluginNameParam.replace(/@(.+)\//g, '');
-
-const app = new Plugin(R.pickBy(
-  (_val, key) => key.replace(/_/g, '-').substring(0, pluginName.length) === pluginName,
-  process.env,
-));
+const app = new Plugin();
 
 const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -22,9 +16,9 @@ describe('search tests', () => {
   let optionRefId;
   let bookingId;
   const token = {
-    apiKey: app.apiKey,
-    endpoint: app.endpoint,
-    clientCode: 'tourconnect',
+    apiKey: process.env.ti2_travelgate_apiKey,
+    endpoint: process.env.ti2_travelgate_endpoint,
+    clientCode: process.env.ti2_travelgate_clientCode,
     /*
      * A travel company that buys accommodation services
     * via Hotel-X API is considered a "client" in our architecture".
@@ -49,6 +43,11 @@ describe('search tests', () => {
   const dateFormat = 'DD/MM/YYYY';
   beforeAll(async () => {
     // nada
+  });
+  describe('Make sure the token is valid', () => {
+    expect(token.apiKey).toBeTruthy();
+    expect(token.endpoint).toBeTruthy();
+    expect(token.clientCode).toBeTruthy();
   });
   describe('hotel booking process', () => {
     it('search for all available hotels, test hotel should exist', async () => {
