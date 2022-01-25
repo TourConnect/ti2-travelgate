@@ -3,15 +3,12 @@ const R = require('ramda');
 const moment = require('moment');
 require('util').inspect.defaultOptions.depth = null;
 
-const { name: pluginNameParam } = require('./package.json');
 const quoteQL = require('./graphQL/quote');
 const searchAvailabilityQL = require('./graphQL/availability');
 const searchQL = require('./graphQL/search');
 const hotelSearchQL = require('./graphQL/hotelSearch');
 const bookQL = require('./graphQL/book');
 const cancelQL = require('./graphQL/cancel');
-
-const pluginName = pluginNameParam.replace(/@(.+)\//g, '');
 
 const capitalize = (s) => {
   if (typeof s !== 'string') return '';
@@ -81,11 +78,11 @@ const getHeaders = (apiKey) => ({
   Authorization: `ApiKey ${apiKey}`,
   'Content-Type': 'application/json',
 });
+
 class Plugin {
-  constructor(params) { // we get the env variables from here
+  constructor(params = {}) { // we get the env variables from here
     Object.entries(params).forEach(([attr, value]) => {
-      const nuName = attr.replace(/_/g, '-').replace(`${pluginName}-`, '');
-      this[nuName] = value;
+      this[attr] = value;
     });
   }
 
@@ -171,13 +168,14 @@ class Plugin {
     if (payload.purchaseDateStart && payload.purchaseDateEnd) {
       // TODO: secondary filtering
     }
-    // console.log(R.propOr([], ['bookings'], bookingResult).filter(e => R.path(['status'], e) !== 'CANCELLED'));
-    return { bookings: R.sort(
-      dateSort,
-      (bookingResult.bookings || []).map(
-        (e) => doMap(e, bookingMapOut),
-      )
-    )};
+    return {
+      bookings: R.sort(
+        dateSort,
+        (bookingResult.bookings || []).map(
+          (e) => doMap(e, bookingMapOut),
+        ),
+      ),
+    };
   }
 
   async searchHotels({ token: { apiKey, endpoint }, payload }) {
