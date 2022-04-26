@@ -11,9 +11,9 @@ const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 describe('search tests', () => {
   // let validKey = process;
-  let hotels;
+  let accommodation;
   let availability;
-  let optionRefId;
+  let quoteId;
   let bookingId;
   const token = {
     apiKey: process.env.ti2_travelgate_apiKey,
@@ -51,16 +51,16 @@ describe('search tests', () => {
   });
   describe('hotel booking process', () => {
     it('search for all available hotels, test hotel should exist', async () => {
-      const retVal = await app.searchHotels({
+      const retVal = await app.searchProducts({
         payload: {
           access: defaultAccessCode,
         },
         token,
       });
       expect(retVal).toBeTruthy();
-      ({ hotels } = retVal);
-      expect(hotels.length).toBeGreaterThan(0);
-      expect(hotels.find((e) => /test/gi.test(e.hotelName))).toBeTruthy();
+      ({ accommodation } = retVal);
+      expect(accommodation.length).toBeGreaterThan(0);
+      expect(accommodation.find((e) => /test/gi.test(e.hotelName))).toBeTruthy();
     });
     it('should be able to check availability for test hotel 1 and 2', async () => {
       const retVal = await app.searchAvailability({
@@ -88,7 +88,7 @@ describe('search tests', () => {
     });
     it('should be able to quote for an availability result', async () => {
       const { id } = availability; // availability result id
-      const retVal = await app.quoteAvailability({
+      const retVal = await app.searchQuote({
         token,
         payload: {
           id,
@@ -97,8 +97,8 @@ describe('search tests', () => {
         },
       });
       expect(retVal).toBeTruthy();
-      ({ quote: { optionRefId } } = retVal);
-      expect(optionRefId).toBeTruthy();
+      ({ quote: [{ id: quoteId }] } = retVal);
+      expect(quoteId).toBeTruthy();
     });
     it('should be able to book a reservation of 1 room', async () => {
       const fullName = faker.name.findName().split(' ');
@@ -108,10 +108,10 @@ describe('search tests', () => {
         fullName,
         faker.name.findName().split(' '),
       ];
-      const retVal = await app.book({
+      const retVal = await app.createBooking({
         token,
         payload: {
-          id: optionRefId, // availability result id
+          id: quoteId, // availability result id
           clientReference: faker.finance.account(),
           holder: { name: fullName[0], surname: fullName[1] },
           remarks: faker.lorem.sentence(),
@@ -171,7 +171,7 @@ describe('search tests', () => {
         access: defaultAccessCode,
         language: 'es',
       };
-      const retVal = await app.searchHotelBooking({
+      const retVal = await app.searchBooking({
         payload,
         token,
       });
@@ -191,7 +191,7 @@ describe('search tests', () => {
         access: defaultAccessCode,
         language: 'es',
       };
-      const retVal = await app.searchHotelBooking({
+      const retVal = await app.searchBooking({
         payload,
         token,
       });
@@ -203,7 +203,7 @@ describe('search tests', () => {
       ).length).toBe(0);
     });
     it('should be able to search by booking Id', async () => {
-      const retVal = await app.searchHotelBooking({
+      const retVal = await app.searchBooking({
         payload: {
           bookingId: '988671',
           hotelCode: '1', // required for booking search

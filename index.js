@@ -69,7 +69,16 @@ const availabilityMapOut = {
     price: R.path(['roomPrice', 'price'], r),
     beds: R.path(['beds']),
   })),
-  price: R.path(['price']),
+  pricing: {
+    retail: R.path(['price', 'gross']),
+    net: R.path(['price', 'net']),
+    currency: R.path(['price', 'currency']),
+    includedTaxes: (e) => e.surcharges.map((c) => ({
+      name: R.path(['description'], c),
+      net: R.path(['price'], c),
+      ...R.omit(['description', 'price'], c),
+    })),
+  },
   surcharges: R.path(['surcharges']),
   cancelPolicy: R.path(['cancelPolicy']),
 };
@@ -86,7 +95,7 @@ class Plugin {
     });
   }
 
-  async searchHotelBooking({
+  async searchBooking({
     token: {
       apiKey,
       endpoint,
@@ -178,7 +187,8 @@ class Plugin {
     };
   }
 
-  async searchHotels({ token: { apiKey, endpoint }, payload }) {
+  async searchProducts({ token: { apiKey, endpoint }, payload }) {
+    // TODO: implement a productName match
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
     const data = JSON.stringify({
@@ -200,7 +210,7 @@ class Plugin {
     if (hotelsResult.errors) {
       throw new Error(hotelsResult.error);
     }
-    return { hotels: hotelsResult.edges.map((e) => doMap(e, hotelsMapOut)) };
+    return { accommodation: hotelsResult.edges.map((e) => doMap(e, hotelsMapOut)) };
   }
 
   async searchAvailability({ token: { apiKey, endpoint, clientCode }, payload }) {
@@ -243,15 +253,15 @@ class Plugin {
     return { availability: options.map((e) => doMap(e, availabilityMapOut)) };
   }
 
-  async quoteAvailability({ token: { apiKey, endpoint, clientCode }, payload }) {
+  async searchQuote({ token: { apiKey, endpoint, clientCode }, payload }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
-    const optionRefId = payload.id;
+    const availabilityId = payload.id;
     const data = JSON.stringify({
       query: quoteQL(),
       variables: {
         criteria: {
-          optionRefId,
+          optionRefId: availabilityId,
         },
         settings: {
           client: clientCode,
@@ -275,7 +285,7 @@ class Plugin {
     return { quote: quote.optionQuote };
   }
 
-  async book({ token: { apiKey, endpoint, clientCode }, payload }) {
+  async createBooking({ token: { apiKey, endpoint, clientCode }, payload }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders(apiKey || this.apiKey);
     const data = {
