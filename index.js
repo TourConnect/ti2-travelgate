@@ -34,7 +34,7 @@ const bookingMapOut = {
   status: (e) => capitalize(R.path(['status'], e)),
   holder: R.path(['holder']),
   telephone: R.path(['phone']),
-  supplierId: R.path(['reference', 'supplier']),
+  supplierBookingId: R.path(['reference', 'supplier']),
   hotelId: R.path(['hotel', 'hotelCode']),
   hotelName: R.path(['hotel', 'hotelName']),
   rooms: (e) => e.hotel.rooms.map((r) => ({
@@ -61,7 +61,7 @@ const availabilityMapOut = {
   id: R.path(['id']),
   hotelName: R.path(['hotelName']),
   hotelId: R.path(['hotelCode']),
-  supplierId: R.path(['supplierCode']),
+  supplierBookingId: R.path(['supplierCode']),
   paymentType: R.path(['paymentType']),
   rooms: (e) => e.rooms.map((r) => ({
     description: R.path(['description'], r),
