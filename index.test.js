@@ -61,6 +61,31 @@ describe('travel-gate', () => {
         expect(retVal).toBeFalsy();
       });
     });
+    describe('template', () => {
+      let template;
+      it('get the template', async () => {
+        template = await app.tokenTemplate();
+        const rules = Object.keys(template);
+        expect(rules).toContain('clientCode');
+        expect(rules).toContain('endpoint');
+        expect(rules).toContain('apiKey');
+      });
+      it('apiKey', () => {
+        const apiKey = template.apiKey.regExp;
+        expect(apiKey.test('something')).toBeFalsy();
+        expect(apiKey.test('f5eb2e1f-4b8f-4b43-a858-4a12d77b8299')).toBeTruthy();
+      });
+      it('clientCode', () => {
+        const clientCode = template.clientCode.regExp;
+        expect(clientCode.test('')).toBeFalsy();
+        expect(clientCode.test('tourconnect')).toBeTruthy();
+      });
+      it('endpoint', () => {
+        const endpoint = template.endpoint.regExp;
+        expect(endpoint.test('something')).toBeFalsy();
+        expect(endpoint.test('https://api.travelgatex.com')).toBeTruthy();
+      });
+    });
   });
   describe('booking', () => {
     describe('hotel booking process', () => {
