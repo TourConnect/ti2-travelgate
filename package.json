@@ -19,7 +19,7 @@
   "dependencies": {
     "axios": "^0.21.1",
     "gql-query-builder": "^3.5.5",
-    "moment": "^2.29.1",
+    "moment": "^2.29.4",
     "ramda": "^0.27.1"
   },
   "devDependencies": {
