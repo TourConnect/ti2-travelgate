@@ -1,6 +1,7 @@
 const axios = require('axios');
 const R = require('ramda');
 const moment = require('moment');
+const assert = require('assert');
 require('util').inspect.defaultOptions.depth = null;
 
 const quoteQL = require('./graphQL/quote');
@@ -93,6 +94,42 @@ class Plugin {
     Object.entries(params).forEach(([attr, value]) => {
       this[attr] = value;
     });
+  }
+
+  async validateToken({
+    token: {
+      apiKey,
+      // clientCode,
+      endpoint,
+    },
+  }) {
+    try {
+      const url = `${endpoint || this.endpoint}/`;
+      const headers = getHeaders(apiKey || this.apiKey);
+      const data = JSON.stringify({
+        query: hotelSearchQL(),
+        variables: {
+          criteria: {
+            access: 0,
+          },
+          relay: {},
+        },
+      });
+      const results = await axios({
+        method: 'post',
+        url,
+        headers,
+        data,
+      });
+      const hotelsResult = R.path(['data', 'data', 'hotelX', 'hotels'], results);
+      assert(Array.isArray(hotelsResult.edges));
+      if (hotelsResult.errors) {
+        throw new Error(hotelsResult.error);
+      }
+      return true;
+    } catch (err) {
+      return false;
+    }
   }
 
   async searchBooking({
