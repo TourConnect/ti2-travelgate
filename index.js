@@ -63,22 +63,22 @@ const availabilityMapOut = {
   hotelId: R.path(['hotelCode']),
   supplierBookingId: R.path(['supplierCode']),
   paymentType: R.path(['paymentType']),
-  rooms: (e) => e.rooms.map((r) => ({
-    description: R.path(['description'], r),
-    roomId: R.path(['code'], r), // code
-    price: R.path(['roomPrice', 'price'], r),
+  rooms: (e) => e.rooms.map((r) => doMap(r, {
+    description: R.path(['description']),
+    roomId: R.path(['code']), // code
+    price: R.path(['roomPrice', 'price']),
     beds: R.path(['beds']),
   })),
-  pricing: {
+  pricing: (el) => doMap(el, {
     retail: R.path(['price', 'gross']),
     net: R.path(['price', 'net']),
     currency: R.path(['price', 'currency']),
-    includedTaxes: (e) => e.surcharges.map((c) => ({
-      name: R.path(['description'], c),
-      net: R.path(['price'], c),
-      ...R.omit(['description', 'price'], c),
+    includedTaxes: (e) => (e.surcharges || []).map((c) => doMap(c, {
+      name: R.path(['description']),
+      net: R.path(['price']),
+      ...R.omit(['description', 'price']),
     })),
-  },
+  }),
   surcharges: R.path(['surcharges']),
   cancelPolicy: R.path(['cancelPolicy']),
 };
@@ -250,7 +250,8 @@ class Plugin {
       data: JSON.stringify(data),
     });
     const options = R.pathOr([], ['data', 'data', 'hotelX', 'search', 'options'], results);
-    return { availability: options.map((e) => doMap(e, availabilityMapOut)) };
+    const availability = options.map((e) => doMap(e, availabilityMapOut));
+    return { availability };
   }
 
   async searchQuote({ token: { apiKey, endpoint, clientCode }, payload }) {
@@ -282,7 +283,12 @@ class Plugin {
       console.error(quote.errors);
       throw new Error(quote.errors[0].description);
     }
-    return { quote: quote.optionQuote };
+    return {
+      quote: {
+        ...quote.optionQuote,
+        id: quote.optionQuote.optionRefId,
+      },
+    };
   }
 
   async createBooking({ token: { apiKey, endpoint, clientCode }, payload }) {

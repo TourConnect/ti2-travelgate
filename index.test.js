@@ -41,9 +41,6 @@ describe('search tests', () => {
    * connected to him, even if the configuration is almost the same.
 */
   const dateFormat = 'DD/MM/YYYY';
-  beforeAll(async () => {
-    // nada
-  });
   describe('Make sure the token is valid', () => {
     expect(token.apiKey).toBeTruthy();
     expect(token.endpoint).toBeTruthy();
@@ -83,7 +80,7 @@ describe('search tests', () => {
       expect(retVal).toBeTruthy();
       ({ availability } = retVal);
       expect(availability.length).toBeGreaterThan(0);
-      expect(availability.find((e) => e.rooms.find((r) => /double room/gi.test(r.description)))).toBeTruthy();
+      expect(availability.find((e) => e.rooms.find((r) => /double standard/gi.test(r.description)))).toBeTruthy();
       availability = rnd(availability); // pick 1
     });
     it('should be able to quote for an availability result', async () => {
@@ -97,7 +94,8 @@ describe('search tests', () => {
         },
       });
       expect(retVal).toBeTruthy();
-      ({ quote: [{ id: quoteId }] } = retVal);
+      quoteId = R.path(['quote', 'id'], retVal);
+      // ({ quote: [{ id: quoteId }] } = retVal);
       expect(quoteId).toBeTruthy();
     });
     it('should be able to book a reservation of 1 room', async () => {
