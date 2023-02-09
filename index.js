@@ -1,4 +1,4 @@
-const axios = require('axios');
+const axiosRaw = require('axios');
 const R = require('ramda');
 const moment = require('moment');
 const assert = require('assert');
@@ -84,15 +84,45 @@ const availabilityMapOut = {
   cancelPolicy: R.path(['cancelPolicy']),
 };
 
-const getHeaders = (apiKey) => ({
+const getHeaders = ({ apiKey, requestId }) => ({
   Authorization: `ApiKey ${apiKey}`,
   'Content-Type': 'application/json',
+  ...requestId ? { requestId } : {},
 });
+
+const axiosSafeRequest = R.pick(['headers', 'method', 'url', 'data']);
+const axiosSafeResponse = response => {
+  const retVal = R.pick(['data', 'status', 'statusText', 'headers', 'request'], response);
+  retVal.request = axiosSafeRequest(retVal.request);
+  return retVal;
+};
 
 class Plugin {
   constructor(params = {}) { // we get the env variables from here
     Object.entries(params).forEach(([attr, value]) => {
       this[attr] = value;
+    });
+    if (this.events) {
+      axiosRaw.interceptors.request.use((request) => {
+        this.events.emit(`${this.name}.axios.request`, axiosSafeRequest(request));
+        return request;
+      });
+      axiosRaw.interceptors.response.use((response) => {
+        this.events.emit(`${this.name}.axios.response`, axiosSafeResponse(response));
+        return response;
+      });
+    }
+    const pluginObj = this;
+    this.axios = async (...args) => axiosRaw(...args).catch((err) => {
+      const errMsg = R.omit(['config'], err.toJSON());
+      console.log(`error in ${this.name}`, args[0], errMsg);
+      if (pluginObj.events) {
+        pluginObj.events.emit(`${this.name}.axios.error`, {
+          request: args[0],
+          err: errMsg,
+        });
+      }
+      throw err;
     });
     this.tokenTemplate = () => ({
       clientCode: {
@@ -121,10 +151,11 @@ class Plugin {
       // clientCode,
       endpoint,
     },
+    requestId,
   }) {
     try {
       const url = `${endpoint || this.endpoint}/`;
-      const headers = getHeaders(apiKey || this.apiKey);
+      const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
       const data = JSON.stringify({
         query: hotelSearchQL(),
         variables: {
@@ -134,7 +165,7 @@ class Plugin {
           relay: {},
         },
       });
-      const results = await axios({
+      const results = await this.axios({
         method: 'post',
         url,
         headers,
@@ -158,6 +189,7 @@ class Plugin {
       clientCode,
     },
     payload: payloadParam,
+    requestId,
   }) {
     const payload = R.reject(R.equals(''))(R.map(
       (e) => e.toString().trim(),
@@ -190,7 +222,7 @@ class Plugin {
       };
     }
     const url = `${endpoint || this.endpoint}/`;
-    const headers = getHeaders(apiKey || this.apiKey);
+    const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const data = JSON.stringify({
       query: searchQL(),
       variables: {
@@ -218,7 +250,7 @@ class Plugin {
         },
       },
     });
-    const results = await axios({
+    const results = await this.axios({
       method: 'post',
       url,
       headers,
@@ -243,10 +275,10 @@ class Plugin {
     };
   }
 
-  async searchProducts({ token: { apiKey, endpoint }, payload }) {
+  async searchProducts({ token: { apiKey, endpoint }, payload, requestId }) {
     // TODO: implement a productName match
     const url = `${endpoint || this.endpoint}/`;
-    const headers = getHeaders(apiKey || this.apiKey);
+    const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const data = JSON.stringify({
       query: hotelSearchQL(),
       variables: {
@@ -256,7 +288,7 @@ class Plugin {
         relay: {},
       },
     });
-    const results = await axios({
+    const results = await this.axios({
       method: 'post',
       url,
       headers,
@@ -269,9 +301,9 @@ class Plugin {
     return { accommodation: hotelsResult.edges.map((e) => doMap(e, hotelsMapOut)) };
   }
 
-  async searchAvailability({ token: { apiKey, endpoint, clientCode }, payload }) {
+  async searchAvailability({ token: { apiKey, endpoint, clientCode }, payload, requestId }) {
     const url = `${endpoint || this.endpoint}/`;
-    const headers = getHeaders(apiKey || this.apiKey);
+    const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const { dateFormat } = payload;
     const checkIn = moment(payload.travelDateStart, dateFormat).format('YYYY-MM-DD');
     const checkOut = moment(payload.travelDateEnd, dateFormat).format('YYYY-MM-DD');
@@ -299,7 +331,7 @@ class Plugin {
         filter: { access: { includes: [payload.access] } },
       },
     };
-    const results = await axios({
+    const results = await this.axios({
       method: 'post',
       url,
       headers,
@@ -310,9 +342,9 @@ class Plugin {
     return { availability };
   }
 
-  async searchQuote({ token: { apiKey, endpoint, clientCode }, payload }) {
+  async searchQuote({ token: { apiKey, endpoint, clientCode }, payload, requestId }) {
     const url = `${endpoint || this.endpoint}/`;
-    const headers = getHeaders(apiKey || this.apiKey);
+    const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const availabilityId = payload.id;
     const data = JSON.stringify({
       query: quoteQL(),
@@ -328,7 +360,7 @@ class Plugin {
         },
       },
     });
-    const results = await axios({
+    const results = await this.axios({
       method: 'post',
       url,
       headers,
@@ -347,9 +379,9 @@ class Plugin {
     };
   }
 
-  async createBooking({ token: { apiKey, endpoint, clientCode }, payload }) {
+  async createBooking({ token: { apiKey, endpoint, clientCode }, payload, requestId }) {
     const url = `${endpoint || this.endpoint}/`;
-    const headers = getHeaders(apiKey || this.apiKey);
+    const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const data = {
       query: bookQL(),
       variables: {
@@ -372,7 +404,7 @@ class Plugin {
         },
       },
     };
-    const results = await axios({
+    const results = await this.axios({
       method: 'post',
       url,
       headers,
@@ -386,9 +418,9 @@ class Plugin {
     return ({ booking: book.booking });
   }
 
-  async cancelBooking({ token: { apiKey, endpoint, clientCode }, payload }) {
+  async cancelBooking({ token: { apiKey, endpoint, clientCode }, payload, requestId }) {
     const url = `${endpoint || this.endpoint}/`;
-    const headers = getHeaders(apiKey || this.apiKey);
+    const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const data = {
       query: cancelQL(),
       variables: {
@@ -403,7 +435,7 @@ class Plugin {
         },
       },
     };
-    const results = await axios({
+    const results = await this.axios({
       method: 'post',
       url,
       headers,
