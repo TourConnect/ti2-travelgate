@@ -17,12 +17,12 @@
   },
   "homepage": "https://github.com/TourConnect/ti2-travelgate#readme",
   "dependencies": {
-    "axios": "^0.21.1",
     "gql-query-builder": "^3.5.5",
     "moment": "^2.29.4",
     "ramda": "^0.27.1"
   },
   "devDependencies": {
+    "axios": "^0.21.1",
     "eslint": "^7.22.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1",

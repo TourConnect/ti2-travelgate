@@ -1,4 +1,3 @@
-const axiosRaw = require('axios');
 const R = require('ramda');
 const moment = require('moment');
 const assert = require('assert');
@@ -14,6 +13,30 @@ const cancelQL = require('./graphQL/cancel');
 const capitalize = (s) => {
   if (typeof s !== 'string') return '';
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+};
+
+const checkError = payload => {
+  const errorObj = R.path(
+    ['errors', 0],
+    payload,
+  );
+  if (errorObj) {
+    throw new Error(
+      errorObj.description, {
+        cause: {
+          code: errorObj.code,
+          values: [
+            errorObj.type,
+          ],
+        },
+      },
+    );
+  }
+  if (errorObj.error) {
+    throw new Error(errorObj.error);
+  }
+  return undefined;
+  // return new Error(JSON.stringify(payload));
 };
 
 const dateSort = (a, b) => moment(a.start, 'YYYY-MM-DD').unix()
@@ -90,39 +113,10 @@ const getHeaders = ({ apiKey, requestId }) => ({
   ...requestId ? { requestId } : {},
 });
 
-const axiosSafeRequest = R.pick(['headers', 'method', 'url', 'data']);
-const axiosSafeResponse = response => {
-  const retVal = R.pick(['data', 'status', 'statusText', 'headers', 'request'], response);
-  retVal.request = axiosSafeRequest(retVal.request);
-  return retVal;
-};
-
 class Plugin {
   constructor(params = {}) { // we get the env variables from here
     Object.entries(params).forEach(([attr, value]) => {
       this[attr] = value;
-    });
-    if (this.events) {
-      axiosRaw.interceptors.request.use((request) => {
-        this.events.emit(`${this.name}.axios.request`, axiosSafeRequest(request));
-        return request;
-      });
-      axiosRaw.interceptors.response.use((response) => {
-        this.events.emit(`${this.name}.axios.response`, axiosSafeResponse(response));
-        return response;
-      });
-    }
-    const pluginObj = this;
-    this.axios = async (...args) => axiosRaw(...args).catch((err) => {
-      const errMsg = R.omit(['config'], err.toJSON());
-      console.log(`error in ${this.name}`, args[0], errMsg);
-      if (pluginObj.events) {
-        pluginObj.events.emit(`${this.name}.axios.error`, {
-          request: args[0],
-          err: errMsg,
-        });
-      }
-      throw err;
     });
     this.tokenTemplate = () => ({
       clientCode: {
@@ -146,6 +140,7 @@ class Plugin {
   }
 
   async validateToken({
+    axios,
     token: {
       apiKey,
       // clientCode,
@@ -165,7 +160,7 @@ class Plugin {
           relay: {},
         },
       });
-      const results = await this.axios({
+      const results = await axios({
         method: 'post',
         url,
         headers,
@@ -173,9 +168,7 @@ class Plugin {
       });
       const hotelsResult = R.path(['data', 'data', 'hotelX', 'hotels'], results);
       assert(Array.isArray(hotelsResult.edges));
-      if (hotelsResult.errors) {
-        throw new Error(hotelsResult.error);
-      }
+      checkError(hotelsResult);
       return true;
     } catch (err) {
       return false;
@@ -183,6 +176,7 @@ class Plugin {
   }
 
   async searchBooking({
+    axios,
     token: {
       apiKey,
       endpoint,
@@ -250,7 +244,7 @@ class Plugin {
         },
       },
     });
-    const results = await this.axios({
+    const results = await axios({
       method: 'post',
       url,
       headers,
@@ -258,10 +252,8 @@ class Plugin {
     });
     // return doMap(JSON.parse(profile).companyProfile, mapIn);
     const bookingResult = R.path(['data', 'data', 'hotelX', 'booking'], results);
-    if (bookingResult.errors) {
-      console.log('bookingResult error', bookingResult.errors);
-      throw new Error(bookingResult.errors);
-    }
+
+    checkError(bookingResult);
     if (payload.purchaseDateStart && payload.purchaseDateEnd) {
       // TODO: secondary filtering
     }
@@ -275,7 +267,7 @@ class Plugin {
     };
   }
 
-  async searchProducts({ token: { apiKey, endpoint }, payload, requestId }) {
+  async searchProducts({ axios, token: { apiKey, endpoint }, payload, requestId }) {
     // TODO: implement a productName match
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
@@ -288,20 +280,18 @@ class Plugin {
         relay: {},
       },
     });
-    const results = await this.axios({
+    const results = await axios({
       method: 'post',
       url,
       headers,
       data,
     });
     const hotelsResult = R.path(['data', 'data', 'hotelX', 'hotels'], results);
-    if (hotelsResult.errors) {
-      throw new Error(hotelsResult.error);
-    }
+    checkError(hotelsResult);
     return { accommodation: hotelsResult.edges.map((e) => doMap(e, hotelsMapOut)) };
   }
 
-  async searchAvailability({ token: { apiKey, endpoint, clientCode }, payload, requestId }) {
+  async searchAvailability({ axios, token: { apiKey, endpoint, clientCode }, payload, requestId }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const { dateFormat } = payload;
@@ -331,7 +321,7 @@ class Plugin {
         filter: { access: { includes: [payload.access] } },
       },
     };
-    const results = await this.axios({
+    const results = await axios({
       method: 'post',
       url,
       headers,
@@ -342,7 +332,7 @@ class Plugin {
     return { availability };
   }
 
-  async searchQuote({ token: { apiKey, endpoint, clientCode }, payload, requestId }) {
+  async searchQuote({ axios, token: { apiKey, endpoint, clientCode }, payload, requestId }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const availabilityId = payload.id;
@@ -360,17 +350,14 @@ class Plugin {
         },
       },
     });
-    const results = await this.axios({
+    const results = await axios({
       method: 'post',
       url,
       headers,
       data,
     });
     const quote = R.path(['data', 'data', 'hotelX', 'quote'], results);
-    if (R.pathOr([], ['errors'], quote).length > 0) {
-      console.error(quote.errors);
-      throw new Error(quote.errors[0].description);
-    }
+    checkError(quote);
     return {
       quote: {
         ...quote.optionQuote,
@@ -379,7 +366,12 @@ class Plugin {
     };
   }
 
-  async createBooking({ token: { apiKey, endpoint, clientCode }, payload, requestId }) {
+  async createBooking({
+    axios,
+    token: { apiKey, endpoint, clientCode },
+    payload,
+    requestId,
+  }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const data = {
@@ -404,21 +396,23 @@ class Plugin {
         },
       },
     };
-    const results = await this.axios({
+    const results = await axios({
       method: 'post',
       url,
       headers,
       data: JSON.stringify(data),
     });
     const book = R.path(['data', 'data', 'hotelX', 'book'], results);
-    if (R.pathOr([], ['errors'], book).length > 0) {
-      console.error(book.errors);
-      throw new Error(book.errors[0].description);
-    }
+    checkError(book);
     return ({ booking: book.booking });
   }
 
-  async cancelBooking({ token: { apiKey, endpoint, clientCode }, payload, requestId }) {
+  async cancelBooking({
+    axios,
+    token: { apiKey, endpoint, clientCode },
+    payload,
+    requestId,
+  }) {
     const url = `${endpoint || this.endpoint}/`;
     const headers = getHeaders({ apiKey: apiKey || this.apiKey, requestId });
     const data = {
@@ -435,14 +429,14 @@ class Plugin {
         },
       },
     };
-    const results = await this.axios({
+    const results = await axios({
       method: 'post',
       url,
       headers,
       data: JSON.stringify(data),
     });
     const cancelResult = R.path(['data', 'data', 'hotelX', 'cancel'], results);
-    if (cancelResult.errors) throw new Error(cancelResult.error);
+    checkError(cancelResult);
     return { cancellation: cancelResult.cancellation };
   }
 }

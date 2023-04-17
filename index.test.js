@@ -1,5 +1,6 @@
 /* globals describe, beforeAll, it, expect */
 const R = require('ramda');
+const axios = require('axios');
 const moment = require('moment');
 const faker = require('faker');
 
@@ -50,12 +51,14 @@ describe('travel-gate', () => {
     describe('validateToken', () => {
       it('valid token', async () => {
         const retVal = await app.validateToken({
+          axios,
           token,
         });
         expect(retVal).toBeTruthy();
       });
       it('invalid token', async () => {
         const retVal = await app.validateToken({
+          axios,
           token: { ...token, apiKey: 'somerandom' },
         });
         expect(retVal).toBeFalsy();
@@ -91,6 +94,7 @@ describe('travel-gate', () => {
     describe('hotel booking process', () => {
       it('search for all available hotels, test hotel should exist', async () => {
         const retVal = await app.searchProducts({
+          axios,
           payload: {
             access: defaultAccessCode,
           },
@@ -103,6 +107,7 @@ describe('travel-gate', () => {
       });
       it('should be able to check availability for test hotel 1 and 2', async () => {
         const retVal = await app.searchAvailability({
+          axios,
           token,
           payload: {
             travelDateStart: moment().add(6, 'M').format(dateFormat),
@@ -128,6 +133,7 @@ describe('travel-gate', () => {
       it('should be able to quote for an availability result', async () => {
         const { id } = availability; // availability result id
         const retVal = await app.searchQuote({
+          axios,
           token,
           payload: {
             id,
@@ -149,6 +155,7 @@ describe('travel-gate', () => {
           faker.name.findName().split(' '),
         ];
         const retVal = await app.createBooking({
+          axios,
           token,
           payload: {
             id: quoteId, // availability result id
@@ -190,6 +197,7 @@ describe('travel-gate', () => {
       });
       it('sould be able to cancel the generated booking', async () => {
         const retVal = await app.cancelBooking({
+          axios,
           token,
           payload: {
             id: bookingId || '1[1|201228|201229|200226|1|es|EUR|0|TEST_LOCATOR_1|975723',
@@ -212,6 +220,7 @@ describe('travel-gate', () => {
           language: 'es',
         };
         const retVal = await app.searchBooking({
+          axios,
           payload,
           token,
         });
@@ -232,6 +241,7 @@ describe('travel-gate', () => {
           language: 'es',
         };
         const retVal = await app.searchBooking({
+          axios,
           payload,
           token,
         });
@@ -244,6 +254,7 @@ describe('travel-gate', () => {
       });
       it('should be able to search by booking Id', async () => {
         const retVal = await app.searchBooking({
+          axios,
           payload: {
             bookingId: '988671',
             hotelCode: '1', // required for booking search
